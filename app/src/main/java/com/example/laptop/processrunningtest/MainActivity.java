@@ -2,12 +2,14 @@ package com.example.laptop.processrunningtest;
 
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.telephony.SmsManager;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
+import android.util.Base64;
 
 import java.io.BufferedReader;
 import java.io.DataInputStream;
@@ -152,6 +154,8 @@ public class MainActivity extends ActionBarActivity {
     it starts a process with root permissions and simply executes the C code.
      */
     public void startRunning(View v) {
+
+
         if (run) {
             stopRunning(v);
             main_tv.setText("Inferior process not running");
@@ -162,7 +166,7 @@ public class MainActivity extends ActionBarActivity {
             try {
                 c_code = Runtime.getRuntime().exec("su");
                 DataOutputStream os = new DataOutputStream(c_code.getOutputStream());
-                os.writeBytes("./data/local/hw\n");
+                os.writeBytes("./data/local/hw rmnet_sdio0\n");
                 run = true;
                 main_tv.setText("Inferior process running");
                 Button b = (Button) findViewById(R.id.button);
@@ -195,10 +199,10 @@ public class MainActivity extends ActionBarActivity {
     public void handlePacket(DatagramPacket p)
     {
         byte[] temp = p.getData();
-        int length = p.getLength();
-        byte[] data = new byte[length];
-        System.arraycopy(temp, 0, data, 0, length);
-        Log.i("SOCKET", new String(data));
+
+        //byte[] data = new byte[length];
+        //System.arraycopy(temp, 0, data, 0, length);
+        Log.i("SOCKET", new String(temp,0,p.getLength()));
     }
 
 }
