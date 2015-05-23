@@ -1,8 +1,14 @@
 package com.example.laptop.processrunningtest;
 
+import android.app.Service;
+import android.content.ComponentName;
+import android.content.Intent;
+import android.content.ServiceConnection;
+import android.os.IBinder;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.telephony.SmsManager;
+import android.util.Base64;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -34,6 +40,11 @@ public class MainActivity extends ActionBarActivity {
     DatagramSocket ds;
     Process c_code;
     TextView main_tv;
+    String interfaceName = "rmnet_sdio0";
+
+    private SmsService sr;
+    private boolean m_bound = false;
+
 
     /* Launches a thread that will open a socket and continually listen to it. When closed in
     * onDestroy, the socket will be closed, resulting in a caught SocketException. When a packet
@@ -43,13 +54,18 @@ public class MainActivity extends ActionBarActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        //Launch the SmsService, which runs in the background and allows for a persistent broadcast receiver
+        Intent intent = new Intent(this, SmsService.class);
+        bindService(intent, mConnection, Service.BIND_AUTO_CREATE);
+
         main_tv = (TextView) findViewById(R.id.text_stuff);
         r = new Runnable() {
             public void run()
             {
                 try {
                     ds = new DatagramSocket(51691);
-                    byte[] buf = new byte[256];
+                    byte[] buf = new byte[1024];
                     DatagramPacket packet = new DatagramPacket(buf, buf.length);
                     while(thread_run)
                     {
@@ -78,6 +94,22 @@ public class MainActivity extends ActionBarActivity {
 
     }
 
+    private ServiceConnection mConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName className, IBinder service)
+        {
+            SmsService.SmsBinder binder = (SmsService.SmsBinder) service;
+            sr = binder.getService();
+            sr.setCallingActivity(MainActivity.this);
+            m_bound = true;
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName arg0)
+        {
+            m_bound = false;
+        }
+    };
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -165,8 +197,10 @@ public class MainActivity extends ActionBarActivity {
             //Process temp;
             try {
                 c_code = Runtime.getRuntime().exec("su");
+                //TODO: Add shell code to remove default IP table routes, and add "default dev lo" route
+
                 DataOutputStream os = new DataOutputStream(c_code.getOutputStream());
-                os.writeBytes("./data/local/hw rmnet_sdio0\n");
+                os.writeBytes("./data/local/hw " + interfaceName + "\n");
                 run = true;
                 main_tv.setText("Inferior process running");
                 Button b = (Button) findViewById(R.id.button);
@@ -184,6 +218,10 @@ public class MainActivity extends ActionBarActivity {
     @Override
     public void onDestroy()
     {
+        if (m_bound) {
+            unbindService(mConnection);
+            m_bound = false;
+        }
         if(thread_run)
         {
             thread_run = false;
@@ -199,10 +237,19 @@ public class MainActivity extends ActionBarActivity {
     public void handlePacket(DatagramPacket p)
     {
         byte[] temp = p.getData();
+        int length = p.getLength();
+        byte[] data = new byte[length];
+        System.arraycopy(temp, 0, data, 0, length);
+        Log.i("SOCKET", new String(data) + " Address=" + p.getAddress() + " SocketAddress=" + p.getSocketAddress() + " length=" + length);
 
-        //byte[] data = new byte[length];
-        //System.arraycopy(temp, 0, data, 0, length);
-        Log.i("SOCKET", new String(temp,0,p.getLength()));
+        StringBuilder sb = new StringBuilder("");
+        for (int i = 0; i < data.length; i++) {
+            sb.append(String.format("%02x", data[i]));
+            sb.append(" ");
+        }
+        Log.i("SOCKET", "\nRaw Hex packet: " + sb.toString());
+
+        new SmsTask(main_tv, data).execute();
     }
 
 }
