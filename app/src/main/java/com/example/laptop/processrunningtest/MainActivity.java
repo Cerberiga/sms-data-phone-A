@@ -32,6 +32,8 @@ public class MainActivity extends ActionBarActivity {
     DatagramSocket ds;
     Process c_code;
     TextView main_tv;
+    String interfaceName = "eth0";
+
 
     /* Launches a thread that will open a socket and continually listen to it. When closed in
     * onDestroy, the socket will be closed, resulting in a caught SocketException. When a packet
@@ -47,7 +49,7 @@ public class MainActivity extends ActionBarActivity {
             {
                 try {
                     ds = new DatagramSocket(51691);
-                    byte[] buf = new byte[256];
+                    byte[] buf = new byte[1024];
                     DatagramPacket packet = new DatagramPacket(buf, buf.length);
                     while(thread_run)
                     {
@@ -161,8 +163,10 @@ public class MainActivity extends ActionBarActivity {
             //Process temp;
             try {
                 c_code = Runtime.getRuntime().exec("su");
+                //TODO: Add shell code to remove default IP table routes, and add "default dev lo" route
+
                 DataOutputStream os = new DataOutputStream(c_code.getOutputStream());
-                os.writeBytes("./data/local/hw\n");
+                os.writeBytes("./data/local/hw " + interfaceName + "\n");
                 run = true;
                 main_tv.setText("Inferior process running");
                 Button b = (Button) findViewById(R.id.button);
@@ -198,7 +202,14 @@ public class MainActivity extends ActionBarActivity {
         int length = p.getLength();
         byte[] data = new byte[length];
         System.arraycopy(temp, 0, data, 0, length);
-        Log.i("SOCKET", new String(data));
+        Log.i("SOCKET", new String(data) + " Address=" + p.getAddress() + " SocketAddress=" + p.getSocketAddress() + " length=" + length);
+
+        StringBuilder sb = new StringBuilder("");
+        for (int i = 0; i < data.length; i++) {
+            sb.append(String.format("%02x", data[i]));
+            sb.append(" ");
+        }
+        Log.i("SOCKET", "\nRaw Hex packet: " + sb.toString());
     }
 
 }
