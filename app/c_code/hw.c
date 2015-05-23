@@ -72,7 +72,7 @@ int main(int argc, char* argv[])
   {
     if(strcmp(argv[1], ifs->ifa_name) == 0)
     {
-      printf("%s\n", ifs->ifa_name);
+      /*printf("%s\n", ifs->ifa_name);
       inet_ntop(AF_INET, &(((struct sockaddr_in *) ifs->ifa_addr)->sin_addr.s_addr), my_addr, 16);
       printf("%s\n", my_addr);
       if(ifs->ifa_netmask)
@@ -82,6 +82,24 @@ int main(int argc, char* argv[])
         if(strcmp("255.255.255.0", my_netmask) == 0)
         {
           strcpy(locked_addr, my_addr);
+        }
+      }*/
+      printf("Interface: %s\n", ifs->ifa_name);
+      printf("ifa_addr: %p\n", ifs->ifa_addr);
+      if(ifs->ifa_addr)
+      {
+        inet_ntop(AF_INET, &(((struct sockaddr_in *) ifs->ifa_addr)->sin_addr.s_addr), my_addr, 16);
+        printf("Address: %s\n", my_addr);
+        if(ifs->ifa_netmask)
+        {
+          inet_ntop(AF_INET, &(((struct sockaddr_in *) ifs->ifa_netmask)->sin_addr.s_addr), my_netmask, 16);
+          printf("%s\n", my_netmask);
+          if(strcmp("255.255.255.255", my_netmask) != 0)
+          {
+            strcpy(locked_addr, my_addr);
+            printf("Address found, breaking\n");
+            break;
+          }
         }
       }
     }
