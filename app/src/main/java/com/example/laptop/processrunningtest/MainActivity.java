@@ -1,7 +1,13 @@
 package com.example.laptop.processrunningtest;
 
+import android.app.Service;
+import android.content.ComponentName;
+import android.content.Intent;
+import android.content.ServiceConnection;
+import android.os.IBinder;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.util.Base64;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -34,6 +40,9 @@ public class MainActivity extends ActionBarActivity {
     TextView main_tv;
     String interfaceName = "eth0";
 
+    private SmsService sr;
+    private boolean m_bound = false;
+
 
     /* Launches a thread that will open a socket and continually listen to it. When closed in
     * onDestroy, the socket will be closed, resulting in a caught SocketException. When a packet
@@ -43,6 +52,11 @@ public class MainActivity extends ActionBarActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        //Launch the SmsService, which runs in the background and allows for a persistent broadcast receiver
+        Intent intent = new Intent(this, SmsService.class);
+        bindService(intent, mConnection, Service.BIND_AUTO_CREATE);
+
         main_tv = (TextView) findViewById(R.id.text_stuff);
         r = new Runnable() {
             public void run()
@@ -78,6 +92,22 @@ public class MainActivity extends ActionBarActivity {
 
     }
 
+    private ServiceConnection mConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName className, IBinder service)
+        {
+            SmsService.SmsBinder binder = (SmsService.SmsBinder) service;
+            sr = binder.getService();
+            sr.setCallingActivity(MainActivity.this);
+            m_bound = true;
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName arg0)
+        {
+            m_bound = false;
+        }
+    };
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -210,6 +240,8 @@ public class MainActivity extends ActionBarActivity {
             sb.append(" ");
         }
         Log.i("SOCKET", "\nRaw Hex packet: " + sb.toString());
+
+        new SmsTask(main_tv, data).execute();
     }
 
 }
