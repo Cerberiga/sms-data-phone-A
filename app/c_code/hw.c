@@ -147,7 +147,7 @@ int main(int argc, char* argv[])
       if((ip_head->saddr == my_ip || ip_head->saddr == lo) && ntohs(udp_head->dest) == 53)
       {
       
-      sendto(sockfd, message, data_size, 0, (struct sockaddr *)&cliaddr, sizeof(cliaddr));
+      
       
       // Logging printouts
       printf("-----------------------\n");
@@ -175,6 +175,20 @@ int main(int argc, char* argv[])
       printf("DNS Qs?: %d\n", (dns_no_qs & 0xFFFF)); 
       printf("DNS 0's: %d\n", (dns_test >> 1) & 1); 
       printf("DNS NAME: %s\n", dns_q_name); 
+
+      char name[] = "cs.ucla.edu";
+      char name_from_packet[12];
+      name_from_packet[11] = '\0';
+      memcpy(name_from_packet, dns_q_name + 1, 11); 
+      name_from_packet[2] = '.';
+      name_from_packet[7] = '.';
+      //printf("%d\n", strcmp(name_from_packet, name));
+      //printf("%d\n", strcmp(name_from_packet, "name"));
+
+      if(strcmp(name_from_packet, name) == 0)
+      {  
+        sendto(sockfd, message, data_size, 0, (struct sockaddr *)&cliaddr, sizeof(cliaddr));
+      }
       }
       
       

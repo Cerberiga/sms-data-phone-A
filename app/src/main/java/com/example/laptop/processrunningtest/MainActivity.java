@@ -29,6 +29,7 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.nio.charset.Charset;
 import java.util.Date;
+import java.util.HashMap;
 
 
 public class MainActivity extends ActionBarActivity {
@@ -41,6 +42,7 @@ public class MainActivity extends ActionBarActivity {
     Process c_code;
     TextView main_tv;
     String interfaceName = "rmnet_sdio0";
+    HashMap<String, DNS> dns_cache = new HashMap<String, DNS>();
 
     private SmsService sr;
     private boolean m_bound = false;
@@ -239,17 +241,80 @@ public class MainActivity extends ActionBarActivity {
         byte[] temp = p.getData();
         int length = p.getLength();
         byte[] data = new byte[length];
-        System.arraycopy(temp, 0, data, 0, length);
-        Log.i("SOCKET", new String(data) + " Address=" + p.getAddress() + " SocketAddress=" + p.getSocketAddress() + " length=" + length);
+        byte[] name = new byte[length];
+        if(length > 41) {
+            System.arraycopy(temp, 0, data, 0, length);
+            System.arraycopy(temp, 41, name, 0, length - 41);
+            Log.i("SOCKET", new String(data) + " Address=" + p.getAddress() + " SocketAddress=" + p.getSocketAddress() + " length=" + length);
 
-        StringBuilder sb = new StringBuilder("");
-        for (int i = 0; i < data.length; i++) {
-            sb.append(String.format("%02x", data[i]));
-            sb.append(" ");
+            StringBuilder sb = new StringBuilder("");
+            for (int i = 0; i < data.length; i++) {
+                sb.append(String.format("%02x", data[i]));
+                sb.append(" ");
+            }
+            Log.i("SOCKET", "\nRaw Hex packet: " + sb.toString());
+
+            int s_port = ((((int) data[20]) & 0xFF) << 8) + (int) data[21];
+            int d_port = ((((int) data[22]) & 0xFF) << 8) + (int) data[23];
+
+            Log.i("SOCKET", "SPORT " + s_port);
+            Log.i("SOCKET", "DPORT " + d_port);
+            String string_name = parseString(name, data[40]);
+            if (checkCache(string_name, s_port, d_port)) {
+                Log.i("SOCKET", "SENDING...");
+            }
+            //new SmsTask(main_tv, data).execute();
         }
-        Log.i("SOCKET", "\nRaw Hex packet: " + sb.toString());
-
-        new SmsTask(main_tv, data).execute();
     }
 
+    String parseString(byte[] b, byte first)
+    {
+        int len = b.length;
+        int i = 0;
+        int advance_amt = (int) first;
+        i += advance_amt;
+        while(i < len)
+        {
+            if(b[i] ==  0)
+                break;
+            advance_amt = (int) b[i];
+            b[i] = '.';
+            i += advance_amt + 1;
+        }
+        byte []temp = new byte[i];
+        System.arraycopy(b, 0, temp, 0, i);
+        return new String(temp);
+    }
+
+    boolean checkCache(String s, int s_port, int d_port)
+    {
+        long secs = (new Date()).getTime();
+        boolean _ret = false;
+        if(dns_cache.containsKey(s))
+        {
+            DNS blah = dns_cache.get(s);
+            if(secs - blah.timestamp > 60*1000)
+            {
+                blah.timestamp = secs;
+                blah.s_port = s_port;
+                _ret = true;
+
+                Log.i("SOCKET", "UPDATING: " + blah.s_port + " " + blah.d_port + " " + blah.timestamp);
+            }
+
+            Log.i("SOCKET", "NO CHANGE: " + blah.s_port + " " + blah.d_port + " " + blah.timestamp);
+        }
+        else
+        {
+            DNS blah = new DNS();
+            blah.timestamp = secs;
+            blah.s_port = s_port;
+            blah.d_port = d_port;
+            _ret = true;
+            dns_cache.put(s, blah);
+            Log.i("SOCKET", "ADDING: " + s_port + " " + d_port + " " + secs);
+        }
+
+        return _ret;
+    }
 }
