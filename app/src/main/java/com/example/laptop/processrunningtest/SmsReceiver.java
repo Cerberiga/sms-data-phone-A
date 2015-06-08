@@ -45,12 +45,25 @@ public class SmsReceiver extends BroadcastReceiver{
 
                 byte[] raw = Base64.decode(msgs[j].getMessageBody(), Base64.DEFAULT);
 
+                StringBuilder sb = new StringBuilder("");
+                for (int k = 0; k < raw.length; k++) {
+                    sb.append(String.format("%02x", raw[k]));
+                    sb.append(" ");
+                }
+                Log.i("RECV", "Raw Hex packet received: " + sb.toString());
+
+
                 if(raw.length > 28) {
-                    int source_port = 256 * (((int) raw[20])&0xFF) + (int) raw[21];
-                    int dest_port = 256 * (((int) raw[22])&0xFF) + (int) raw[23];
+                    int source_port = 256 * (((int) raw[20])&0xFF) + (((int) raw[21])&0xFF);
+                    int dest_port = 256 * (((int) raw[22])&0xFF) + (((int) raw[23])&0xFF);
+                    int id = 256 * (((int) raw[0])&0xFF) + (((int) raw[1])&0xFF);
+                    Log.i("RECV", "DNS ID: " + id);
                     Log.i("RECV", "SOURCE PORT: " + source_port);
                     Log.i("RECV", "DEST PORT: " + dest_port);
                     Log.i("RECV", new String(raw));
+
+                    Thread t = new Thread(new DNStoC(main_act, raw));
+                    t.start();
                     /*String temp = "";
                     for (int k = 28; k < raw.length; k++) {
                         temp += String.format("0x%02X", raw[k]) + " ";

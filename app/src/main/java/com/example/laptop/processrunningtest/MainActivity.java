@@ -93,7 +93,6 @@ public class MainActivity extends ActionBarActivity {
         };
         Thread t = new Thread(r);
         t.start();
-
     }
 
     private ServiceConnection mConnection = new ServiceConnection() {
@@ -242,6 +241,9 @@ public class MainActivity extends ActionBarActivity {
         int length = p.getLength();
         byte[] data = new byte[length];
         byte[] name = new byte[length];
+
+
+
         if(length > 41) {
             System.arraycopy(temp, 0, data, 0, length);
             System.arraycopy(temp, 41, name, 0, length - 41);
@@ -254,21 +256,36 @@ public class MainActivity extends ActionBarActivity {
             }
             Log.i("SOCKET", "\nRaw Hex packet: " + sb.toString());
 
-            int s_port = ((((int) data[20]) & 0xFF) << 8) + (int) data[21];
-            int d_port = ((((int) data[22]) & 0xFF) << 8) + (int) data[23];
-
-            Log.i("SOCKET", "SPORT " + s_port);
-            Log.i("SOCKET", "DPORT " + d_port);
-            String string_name = parseString(name, data[40]);
-            if (checkCache(string_name, s_port, d_port)) {
-                Log.i("SOCKET", "SENDING...");
+            int s_port = ((((int) data[20]) & 0xFF) * 256) + (((int) data[21])&0xFF);
+            int d_port = ((((int) data[22]) & 0xFF) * 256) + (((int) data[23])&0xFF);
+            int id = 256 * (((int) data[28])&0xFF) + (((int) data[29])&0xFF);
+            Log.i("SOCKET", "DNS ID: " + id);
+            String ip = (((int) data[12])&0xFF) + "." + (((int)data[13])&0xFF) + "." + (((int)data[14])&0xFF) + "." + (((int)data[15])&0xFF);
+            String d_ip = (((int) data[16])&0xFF) + "." + (((int)data[17])&0xFF) + "." + (((int)data[18])&0xFF) + "." + (((int)data[19])&0xFF);
+            Log.i("SOCKET", "IP: " + ip);
+            Log.i("SOCKET", "DIP: " + d_ip);
+            Log.i("SOCKET", "D_PORT: " + d_port);
+            if(d_port != 53)
+            {
+                return;
             }
-            //new SmsTask(main_tv, data).execute();
+            if(d_port == 53)
+            {
+                Log.i("SOCKET", "SPORT " + s_port);
+                Log.i("SOCKET", "DPORT " + d_port);
+                String string_name = parseString(name, data[40]);
+                if (checkCache(string_name, s_port, d_port, ip, data)) {
+                    Log.i("SOCKET", "SENDING...");
+                    new SmsTask(main_tv, data).execute();
+                }
+                //new SmsTask(main_tv, data).execute();
+            }
         }
     }
 
     String parseString(byte[] b, byte first)
     {
+        Log.i("ASDFS", new String(b));
         int len = b.length;
         int i = 0;
         int advance_amt = (int) first;
@@ -286,7 +303,26 @@ public class MainActivity extends ActionBarActivity {
         return new String(temp);
     }
 
-    boolean checkCache(String s, int s_port, int d_port)
+    void copyArr(DNS s, byte[] arr)
+    {
+        s.s_ip_1 = arr[12];
+        s.s_ip_2 = arr[13];
+        s.s_ip_3 = arr[14];
+        s.s_ip_4 = arr[15];
+
+        s.d_ip_1 = arr[16];
+        s.d_ip_2 = arr[17];
+        s.d_ip_3 = arr[18];
+        s.d_ip_4 = arr[19];
+
+        s.s_p_1 = arr[20];
+        s.s_p_2 = arr[21];
+        s.d_p_1 = arr[22];
+        s.d_p_2 = arr[23];
+
+    }
+
+    boolean checkCache(String s, int s_port, int d_port, String ip, byte[] arr)
     {
         long secs = (new Date()).getTime();
         boolean _ret = false;
@@ -301,7 +337,8 @@ public class MainActivity extends ActionBarActivity {
 
                 Log.i("SOCKET", "UPDATING: " + blah.s_port + " " + blah.d_port + " " + blah.timestamp);
             }
-
+            copyArr(blah, arr);
+            blah.s_port = s_port;
             Log.i("SOCKET", "NO CHANGE: " + blah.s_port + " " + blah.d_port + " " + blah.timestamp);
         }
         else
@@ -310,11 +347,12 @@ public class MainActivity extends ActionBarActivity {
             blah.timestamp = secs;
             blah.s_port = s_port;
             blah.d_port = d_port;
+            blah.ip = ip;
             _ret = true;
             dns_cache.put(s, blah);
             Log.i("SOCKET", "ADDING: " + s_port + " " + d_port + " " + secs);
+            copyArr(blah, arr);
         }
-
         return _ret;
     }
 }

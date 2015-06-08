@@ -30,8 +30,8 @@ public class SmsTask extends AsyncTask<String, Void, String> {
         String str = "Sent";
         try {
             //String phoneNo = "5556";
-            //String phoneNo = "8186051992";
-            String phoneNo = "15304004608";
+            String phoneNo = "8186051992";
+            //String phoneNo = "15304004608";
             String msg;
 
             msg = Base64.encodeToString(data, Base64.DEFAULT);
@@ -43,7 +43,8 @@ public class SmsTask extends AsyncTask<String, Void, String> {
             //msg = "HelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHello";
             //msg = "HelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHello";
             Log.i("sms", "Sending message (length=" + msg.length() + " :" + msg);
-
+            int id = 256 * (((int) data[28])&0xFF) + (((int) data[29])&0xFF);
+            Log.i("SENDING", "DNS ID: " + id);
             SmsManager smsManager = SmsManager.getDefault();
             smsManager.sendTextMessage(phoneNo, null, msg, null, null);
             ArrayList<String> msgList = smsManager.divideMessage(msg);
