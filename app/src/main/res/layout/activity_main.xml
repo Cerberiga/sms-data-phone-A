@@ -1,4 +1,4 @@
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools" android:layout_width="match_parent"
     android:orientation="vertical"
     android:layout_height="match_parent" android:paddingLeft="@dimen/activity_horizontal_margin"
@@ -14,6 +14,32 @@
         android:text='Start Process'
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_below='@+id/text_stuff'
         android:onClick="startRunning"/>
 
-</LinearLayout>
+    <Button
+        android:id="@+id/temp"
+        android:text='Ruin Routes'
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/button"
+        android:onClick="removeRoutes"/>
+
+    <ListView
+        android:id="@+id/cache"
+        android:layout_width="match_parent"
+        android:layout_below="@+id/temp"
+        android:layout_height="wrap_content"
+        android:background="@drawable/border"
+        android:fadeScrollbars="false">
+    </ListView>
+
+    <Button
+        android:id="@+id/exit"
+        android:text='Exit Application'
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/cache"
+        android:onClick="exitApp"/>
+
+</RelativeLayout>

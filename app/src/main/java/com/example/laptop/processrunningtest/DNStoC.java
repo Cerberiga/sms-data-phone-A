@@ -24,11 +24,13 @@ public class DNStoC implements Runnable{
     int d_port;
     byte[] raw;
     MainActivity ma;
+    DatagramSocket ds;
 
-    public DNStoC(MainActivity ma, byte[] raw) {
+    public DNStoC(MainActivity ma, byte[] raw, DatagramSocket ds) {
         this.ma = ma;
         /*this.s_port = s_port;
         this.d_port = d_port;*/
+        this.ds = ds;
         this.raw = raw;
     }
 
@@ -87,8 +89,9 @@ public class DNStoC implements Runnable{
                 //p.setData(raw);
                 p.setData(total);
 
-                DatagramSocket ds = new DatagramSocket(51692);//d_port);
+                //DatagramSocket ds = new DatagramSocket(51692);//d_port);
                 ds.send(p);
+                //ds.close();
             }
             else
             {

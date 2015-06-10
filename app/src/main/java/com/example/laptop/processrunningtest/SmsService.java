@@ -8,6 +8,9 @@ import android.os.IBinder;
 import android.provider.Telephony;
 import android.util.Log;
 
+import java.net.DatagramSocket;
+import java.net.SocketException;
+
 /**
  * Created by laptop on 4/22/2015.
  */
@@ -21,6 +24,11 @@ public class SmsService extends Service{
     @Override
     public void onCreate()
     {
+        try {
+            br.ds = new DatagramSocket(51692);
+        } catch (SocketException e) {
+            e.printStackTrace();
+        }
         this.registerReceiver(br, in_f);
         super.onCreate();
         Log.i("SMSSERV", "STARTED");
@@ -53,6 +61,7 @@ public class SmsService extends Service{
     @Override
     public void onDestroy()
     {
+        br.ds.close();
         this.unregisterReceiver(br);
         super.onDestroy();
     }

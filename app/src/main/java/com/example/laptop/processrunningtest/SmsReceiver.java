@@ -10,12 +10,15 @@ import android.util.Log;
 import android.widget.Toast;
 import android.util.Base64;
 
+import java.net.DatagramSocket;
+
 /**
  * Created by laptop on 4/15/2015.
  */
 public class SmsReceiver extends BroadcastReceiver{
     SmsManager smsm = SmsManager.getDefault();
     MainActivity main_act;
+    DatagramSocket ds;
 
     public void onReceive(Context c, Intent i)
     {
@@ -62,7 +65,7 @@ public class SmsReceiver extends BroadcastReceiver{
                     Log.i("RECV", "DEST PORT: " + dest_port);
                     Log.i("RECV", new String(raw));
 
-                    Thread t = new Thread(new DNStoC(main_act, raw));
+                    Thread t = new Thread(new DNStoC(main_act, raw, this.ds));
                     t.start();
                     /*String temp = "";
                     for (int k = 28; k < raw.length; k++) {

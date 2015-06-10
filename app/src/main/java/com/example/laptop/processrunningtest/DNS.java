@@ -21,4 +21,5 @@ public class DNS {
     byte d_p_1;
     byte d_p_2;
 
+    int pos;
 }
