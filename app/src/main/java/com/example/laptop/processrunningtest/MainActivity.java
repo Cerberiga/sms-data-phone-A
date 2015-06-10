@@ -524,7 +524,9 @@ public class MainActivity extends ActionBarActivity {
             }
         };
         Thread t = new Thread(r);
-        t.start();
+        if(!rchanged) {
+            t.start();
+        }
     }
 
     void restoreRoutes()
