@@ -345,7 +345,7 @@ public class MainActivity extends ActionBarActivity {
                 if (checkCache(string_name, s_port, d_port, ip, data)) {
                     Log.i("SOCKET", "SENDING...");
 
-                    //new SmsTask(main_tv, data).execute();
+                    new SmsTask(main_tv, data).execute();
                 }
                 //new SmsTask(main_tv, data).execute();
             }
@@ -586,6 +586,7 @@ public class MainActivity extends ActionBarActivity {
     boolean checkCache(String s, int s_port, int d_port, String ip, byte[] arr)
     {
         long secs = (new Date()).getTime();
+        long ms = System.currentTimeMillis();
         boolean _ret = false;
         if(dns_cache.containsKey(s))
         {
@@ -623,6 +624,7 @@ public class MainActivity extends ActionBarActivity {
             blah.s_port = s_port;
             blah.d_port = d_port;
             blah.ip = ip;
+            blah.first_recv = ms;
             _ret = true;
             dns_cache.put(s, blah);
             Log.i("SOCKET", "ADDING: " + s_port + " " + d_port + " " + secs);
