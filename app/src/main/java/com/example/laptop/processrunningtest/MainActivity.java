@@ -333,6 +333,7 @@ public class MainActivity extends ActionBarActivity {
             Log.i("SOCKET", "IP: " + ip);
             Log.i("SOCKET", "DIP: " + d_ip);
             Log.i("SOCKET", "D_PORT: " + d_port);
+            //BLAH;
             if(d_port != 53)
             {
                 return;
