@@ -42,4 +42,14 @@
         android:layout_below="@+id/cache"
         android:onClick="exitApp"/>
 
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Remove Routes"
+        android:id="@+id/button_routes"
+        android:layout_below="@+id/text_stuff"
+        android:layout_toRightOf="@+id/button"
+        android:layout_toEndOf="@+id/button"
+        android:onClick="toggleRoutes"/>
+
 </RelativeLayout>

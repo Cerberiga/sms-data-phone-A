@@ -3,6 +3,7 @@ package com.example.laptop.processrunningtest;
 import android.app.AlertDialog;
 import android.app.Service;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
@@ -65,7 +66,7 @@ public class MainActivity extends ActionBarActivity {
     static ArrayAdapter aa;
     Handler h;
     String phone_no;
-
+    Context c = this;
 
     static class MyHandler extends Handler{
         public void handleMessage(Message input)
@@ -256,20 +257,20 @@ public class MainActivity extends ActionBarActivity {
 
 
         if (run) {
-            if(rchanged)
+            /*if(rchanged)
             {
                 restoreRoutes();
-            }
+            }*/
             stopRunning(v);
             main_tv.setText("Inferior process not running");
             Button b = (Button) findViewById(R.id.button);
             b.setText("Start Process");
         } else {
             clear_vals();
-            if(!rchanged)
+            /*if(!rchanged)
             {
                 removeRoutes(v);
-            }
+            }*/
             //Process temp;
             try {
                 c_code = Runtime.getRuntime().exec("su");
@@ -437,6 +438,22 @@ public class MainActivity extends ActionBarActivity {
         aa.remove(ob);
     }
 */
+
+    public void toggleRoutes(View v) {
+        if(rchanged)
+        {
+            restoreRoutes();
+            Button b = (Button) findViewById(R.id.button_routes);
+            b.setText("Remove Routes");
+        }
+        else
+        {
+            removeRoutes(v);
+            Button b = (Button) findViewById(R.id.button_routes);
+            b.setText("Restore Routes");
+        }
+    }
+
     public void removeRoutes(View v)
     {
         Runnable r = new Runnable()
@@ -673,10 +690,10 @@ public class MainActivity extends ActionBarActivity {
     public void clear_vals()
     {
         dns_cache = new HashMap<Integer, DNS>();
-        ifaces = new ArrayList<String>();
-        tables = new ArrayList<String>();
-        route_del = new ArrayList<String>();
-        route_add = new ArrayList<String>();
+        //ifaces = new ArrayList<String>();
+        //tables = new ArrayList<String>();
+        //route_del = new ArrayList<String>();
+        //route_add = new ArrayList<String>();
         roundTripTimes = new ArrayList<Long>();
         rttname = new ArrayList<String>();
         aa.clear();
@@ -697,10 +714,10 @@ public class MainActivity extends ActionBarActivity {
 
     public void setNum(View v)
     {
-        AlertDialog.Builder builder = new AlertDialog.Builder(getBaseContext());
+        AlertDialog.Builder builder = new AlertDialog.Builder(c);
         builder.setTitle("Set receiving phone number");
         builder.setMessage("Enter phone number");
-        final EditText eText = new EditText(getBaseContext());
+        final EditText eText = new EditText(c);
         eText.setInputType(InputType.TYPE_CLASS_TEXT);
         eText.setTextColor(Color.rgb(0, 0, 0));
         builder.setView(eText);
@@ -711,7 +728,7 @@ public class MainActivity extends ActionBarActivity {
                 if (str != null && str.matches("\\d+(\\.\\d+)?")) {
                     phone_no = str;
                 } else {
-                    Toast.makeText(getBaseContext(), "Invalid phone number",
+                    Toast.makeText(c, "Invalid phone number",
                             Toast.LENGTH_SHORT).show();
                 }
             }
