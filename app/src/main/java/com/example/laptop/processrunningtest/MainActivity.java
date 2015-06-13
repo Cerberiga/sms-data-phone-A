@@ -43,12 +43,14 @@ public class MainActivity extends ActionBarActivity {
     Process c_code;
     TextView main_tv;
     String interfaceName = "rmnet_sdio0";
-    HashMap<String, DNS> dns_cache = new HashMap<String, DNS>();
+    //HashMap<String, DNS> dns_cache = new HashMap<String, DNS>();
+    HashMap<Integer, DNS> dns_cache = new HashMap<Integer, DNS>();
     ArrayList<String> ifaces = new ArrayList<String>();
     ArrayList<String> tables = new ArrayList<String>();
     ArrayList<String> route_del = new ArrayList<String>();
     ArrayList<String> route_add = new ArrayList<String>();
     private ArrayList<Long> roundTripTimes = new ArrayList<Long>();
+    private ArrayList<String> rttname = new ArrayList<String>();
     boolean rchanged = false;
     private SmsService sr;
     private boolean m_bound = false;
@@ -56,6 +58,7 @@ public class MainActivity extends ActionBarActivity {
     ListView lv;
     static ArrayAdapter aa;
     Handler h;
+
 
     static class MyHandler extends Handler{
         public void handleMessage(Message input)
@@ -333,7 +336,7 @@ public class MainActivity extends ActionBarActivity {
                 Log.i("SOCKET", "SPORT " + s_port);
                 Log.i("SOCKET", "DPORT " + d_port);
                 String string_name = parseString(name, data[40]);
-                if (checkCache(string_name, s_port, d_port, ip, data)) {
+                if (checkCache(string_name, s_port, d_port, ip, data, id)) {
                     Log.i("SOCKET", "SENDING...");
 
                     new SmsTask(main_tv, data, seqNum++).execute();
@@ -574,15 +577,17 @@ public class MainActivity extends ActionBarActivity {
 
 
 
-    boolean checkCache(String s, int s_port, int d_port, String ip, byte[] arr)
+    synchronized boolean checkCache(String s, int s_port, int d_port, String ip, byte[] arr, int id)
     {
         long secs = (new Date()).getTime();
         long ms = System.currentTimeMillis();
         boolean _ret = false;
-        if(dns_cache.containsKey(s))
+        //if(dns_cache.containsKey(s))
+        if(dns_cache.containsKey(id))
         {
-            DNS blah = dns_cache.get(s);
-
+            //DNS blah = dns_cache.get(s);
+            DNS blah = dns_cache.get(id);
+            /*
             if(secs - blah.timestamp > 60*1000)
             {
                 blah.timestamp = secs;
@@ -590,11 +595,13 @@ public class MainActivity extends ActionBarActivity {
                 _ret = true;
 
                 Log.i("SOCKET", "UPDATING: " + blah.s_port + " " + blah.d_port + " " + blah.timestamp);
-            }
+            }*/
 
             // If we have already completed the request, reset the timestamp to right now
             if(blah.first_sent == 0) {
+                _ret = true;
                 blah.first_sent = ms;
+                blah.timestamp = ms;
             }
 
             copyArr(blah, arr);
@@ -602,7 +609,7 @@ public class MainActivity extends ActionBarActivity {
 
             String remove = list.get(blah.pos);
             //aa.remove(remove);
-            String add = "Query: " + s + ", Source Port: " + s_port + ", Timestamp: " + secs;
+            String add = "Query: " + s + ", Source Port: " + s_port + ", Timestamp: " + blah.first_sent;
             //aa.insert(add, blah.pos);
             Message msg = new Message();
             Bundle b = new Bundle();
@@ -622,11 +629,13 @@ public class MainActivity extends ActionBarActivity {
             blah.d_port = d_port;
             blah.ip = ip;
             blah.first_sent = ms;
+            blah.name = s;
             _ret = true;
-            dns_cache.put(s, blah);
+            //dns_cache.put(s, blah);
+            dns_cache.put(id,blah);
             Log.i("SOCKET", "ADDING: " + s_port + " " + d_port + " " + secs);
             blah.pos = list.size();
-            String add = "Query: " + s + ", Source Port: " + s_port + ", Timestamp: " + secs;
+            String add = "Query: " + s + ", Source Port: " + s_port + ", Timestamp: " + blah.first_sent;
 
             Message msg = new Message();
             Bundle b = new Bundle();
@@ -642,13 +651,14 @@ public class MainActivity extends ActionBarActivity {
     }
 
 
-    public synchronized void addRTT(long rtt) {
+    public synchronized void addRTT(long rtt, String s) {
         long avg = 0;
         roundTripTimes.add(rtt);
+        rttname.add(s);
         for (int i = 0; i < roundTripTimes.size(); i++) {
             Long trip = roundTripTimes.get(i);
             avg += trip;
-            Log.i("RTT instance", i + "  " + trip);
+            Log.i("RTT instance", i + " :" + rttname.get(i) + " - " + trip);
         }
         avg = avg/roundTripTimes.size();
         Log.i("RTT avg", avg + "");

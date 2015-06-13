@@ -24,16 +24,18 @@ public class DNStoC implements Runnable{
 
     int s_port;
     int d_port;
+    int id;
     byte[] raw;
     MainActivity ma;
     DatagramSocket ds;
 
-    public DNStoC(MainActivity ma, byte[] raw, DatagramSocket ds) {
+    public DNStoC(MainActivity ma, byte[] raw, DatagramSocket ds, int id) {
         this.ma = ma;
         /*this.s_port = s_port;
         this.d_port = d_port;*/
         this.ds = ds;
         this.raw = raw;
+        this.id = id;
     }
 
     @Override
@@ -45,10 +47,13 @@ public class DNStoC implements Runnable{
 
             byte[] total = new byte[raw.length + 12];
 
-            HashMap<String, DNS> hm = ma.dns_cache;
-            if(hm.containsKey(dest))
+            HashMap<Integer, DNS> hm = ma.dns_cache;
+            //HashMap<String, DNS> hm = ma.dns_cache;
+            //if(hm.containsKey(dest))
+            if(hm.containsKey(id))
             {
-                DNS blah = hm.get(dest);
+                //DNS blah = hm.get(dest);
+                DNS blah = hm.get(id);
 
                 // Record TTL
                 blah.first_recv = System.currentTimeMillis();
@@ -57,7 +62,7 @@ public class DNStoC implements Runnable{
                 String remove = ma.list.get(blah.pos);
                 //aa.remove(remove);
                 String add = "Completed request to : " + dest + " RTT: " + (blah.first_recv - blah.first_sent);
-                ma.addRTT(blah.first_recv - blah.first_sent);
+                ma.addRTT(blah.first_recv - blah.first_sent, dest);
                 //aa.insert(add, blah.pos);
                 Message msg = new Message();
                 Bundle b = new Bundle();

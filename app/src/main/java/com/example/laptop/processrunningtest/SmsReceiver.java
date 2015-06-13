@@ -102,8 +102,10 @@ public class SmsReceiver extends BroadcastReceiver{
                     Log.i("RECV", "DEST PORT: " + dest_port);
                     Log.i("RECV", new String(mergedData));
 
-                    Thread t = new Thread(new DNStoC(main_act, mergedData, this.ds));
-                    t.start();
+                    synchronized (main_act) {
+                        Thread t = new Thread(new DNStoC(main_act, mergedData, this.ds, id));
+                        t.start();
+                    }
                     Log.i("SmsReceiver", "Started DNStoC thread");
                 }
 
