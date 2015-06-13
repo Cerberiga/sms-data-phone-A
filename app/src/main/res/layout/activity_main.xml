@@ -19,11 +19,11 @@
 
     <Button
         android:id="@+id/temp"
-        android:text='Ruin Routes'
+        android:text="Set Phone B's Number"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_below="@+id/button"
-        android:onClick="removeRoutes"/>
+        android:onClick="setNum"/>
 
     <ListView
         android:id="@+id/cache"

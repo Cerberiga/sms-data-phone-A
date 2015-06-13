@@ -58,6 +58,7 @@ public class MainActivity extends ActionBarActivity {
     ListView lv;
     static ArrayAdapter aa;
     Handler h;
+    String phone_no;
 
 
     static class MyHandler extends Handler{
@@ -249,11 +250,20 @@ public class MainActivity extends ActionBarActivity {
 
 
         if (run) {
+            if(rchanged)
+            {
+                restoreRoutes();
+            }
             stopRunning(v);
             main_tv.setText("Inferior process not running");
             Button b = (Button) findViewById(R.id.button);
             b.setText("Start Process");
         } else {
+            clear_vals();
+            if(!rchanged)
+            {
+                removeRoutes(v);
+            }
             //Process temp;
             try {
                 c_code = Runtime.getRuntime().exec("su");
@@ -339,7 +349,7 @@ public class MainActivity extends ActionBarActivity {
                 if (checkCache(string_name, s_port, d_port, ip, data, id)) {
                     Log.i("SOCKET", "SENDING...");
 
-                    new SmsTask(main_tv, data, seqNum++).execute();
+                    new SmsTask(main_tv, data, seqNum++, phone_no).execute();
                 }
                 //new SmsTask(main_tv, data).execute();
             }
@@ -561,6 +571,7 @@ public class MainActivity extends ActionBarActivity {
                         Log.i("RESTORE ROUTE (ADD)", builder.toString());
                         os2.writeBytes(builder.toString());
                         os2.writeBytes("exit\n");
+                        rchanged = false;
                     }
                 } catch (IOException ioe)
                 {
@@ -572,7 +583,10 @@ public class MainActivity extends ActionBarActivity {
             }
         };
         Thread t = new Thread(r);
-        t.start();
+        if(rchanged)
+        {
+            t.start();
+        }
     }
 
 
@@ -650,6 +664,17 @@ public class MainActivity extends ActionBarActivity {
         return _ret;
     }
 
+    public void clear_vals()
+    {
+        dns_cache = new HashMap<Integer, DNS>();
+        ifaces = new ArrayList<String>();
+        tables = new ArrayList<String>();
+        route_del = new ArrayList<String>();
+        route_add = new ArrayList<String>();
+        roundTripTimes = new ArrayList<Long>();
+        rttname = new ArrayList<String>();
+        aa.clear();
+    }
 
     public synchronized void addRTT(long rtt, String s) {
         long avg = 0;
@@ -662,5 +687,10 @@ public class MainActivity extends ActionBarActivity {
         }
         avg = avg/roundTripTimes.size();
         Log.i("RTT avg", avg + "");
+    }
+
+    public void setNum(View v)
+    {
+
     }
 }
