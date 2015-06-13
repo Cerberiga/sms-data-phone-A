@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">ProcessRunningTest</string>
+    <string name="app_name">SMS Data</string>
     <string name="hello_world">Inferior process not running</string>
     <string name="action_settings">Settings</string>
 </resources>
