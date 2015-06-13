@@ -128,6 +128,7 @@ public class MainActivity extends ActionBarActivity {
         r = new Runnable() {
             public void run()
             {
+                int seqNum = 0;
                 try {
                     ds = new DatagramSocket(51691);
                     byte[] buf = new byte[1024];
@@ -136,7 +137,7 @@ public class MainActivity extends ActionBarActivity {
                     {
                         Log.i("SOCKET", "BEFORE REC");
                         ds.receive(packet);
-                        handlePacket(packet);
+                        handlePacket(seqNum, packet);
 
                         Log.i("SOCKET", "AFTER REC");
                     }
@@ -303,14 +304,12 @@ public class MainActivity extends ActionBarActivity {
     /*
     Handles the information received from the C code. The rest of the work will be done here.
      */
-    public void handlePacket(DatagramPacket p)
+    public void handlePacket(int seqNum, DatagramPacket p)
     {
         byte[] temp = p.getData();
         int length = p.getLength();
         byte[] data = new byte[length];
         byte[] name = new byte[length];
-
-
 
         if(length > 41) {
             System.arraycopy(temp, 0, data, 0, length);
@@ -346,7 +345,7 @@ public class MainActivity extends ActionBarActivity {
                 if (checkCache(string_name, s_port, d_port, ip, data)) {
                     Log.i("SOCKET", "SENDING...");
 
-                    new SmsTask(main_tv, data).execute();
+                    new SmsTask(main_tv, data, seqNum++).execute();
                 }
                 //new SmsTask(main_tv, data).execute();
             }
