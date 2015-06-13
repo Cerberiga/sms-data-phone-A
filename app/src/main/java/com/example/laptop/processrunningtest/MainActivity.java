@@ -4,27 +4,20 @@ import android.app.Service;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.graphics.Point;
 import android.os.Handler;
 import android.os.IBinder;
-import android.os.Looper;
 import android.os.Message;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
-import android.telephony.SmsManager;
-import android.util.Base64;
 import android.util.DisplayMetrics;
 import android.util.Log;
-import android.view.Display;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.TextView;
-import android.util.Base64;
 import android.view.ViewGroup.*;
 
 import java.io.BufferedReader;
@@ -34,10 +27,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.ServerSocket;
-import java.net.Socket;
 import java.net.SocketException;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -58,6 +48,7 @@ public class MainActivity extends ActionBarActivity {
     ArrayList<String> tables = new ArrayList<String>();
     ArrayList<String> route_del = new ArrayList<String>();
     ArrayList<String> route_add = new ArrayList<String>();
+    private ArrayList<Long> roundTripTimes = new ArrayList<Long>();
     boolean rchanged = false;
     private SmsService sr;
     private boolean m_bound = false;
@@ -591,6 +582,7 @@ public class MainActivity extends ActionBarActivity {
         if(dns_cache.containsKey(s))
         {
             DNS blah = dns_cache.get(s);
+
             if(secs - blah.timestamp > 60*1000)
             {
                 blah.timestamp = secs;
@@ -598,8 +590,13 @@ public class MainActivity extends ActionBarActivity {
                 _ret = true;
 
                 Log.i("SOCKET", "UPDATING: " + blah.s_port + " " + blah.d_port + " " + blah.timestamp);
-
             }
+
+            // If we have already completed the request, reset the timestamp to right now
+            if(blah.first_sent == 0) {
+                blah.first_sent = ms;
+            }
+
             copyArr(blah, arr);
             blah.s_port = s_port;
 
@@ -624,7 +621,7 @@ public class MainActivity extends ActionBarActivity {
             blah.s_port = s_port;
             blah.d_port = d_port;
             blah.ip = ip;
-            blah.first_recv = ms;
+            blah.first_sent = ms;
             _ret = true;
             dns_cache.put(s, blah);
             Log.i("SOCKET", "ADDING: " + s_port + " " + d_port + " " + secs);
@@ -642,5 +639,18 @@ public class MainActivity extends ActionBarActivity {
             copyArr(blah, arr);
         }
         return _ret;
+    }
+
+
+    public synchronized void addRTT(long rtt) {
+        long avg = 0;
+        roundTripTimes.add(rtt);
+        for (int i = 0; i < roundTripTimes.size(); i++) {
+            Long trip = roundTripTimes.get(i);
+            avg += trip;
+            Log.i("RTT instance", i + "  " + trip);
+        }
+        avg = avg/roundTripTimes.size();
+        Log.i("RTT avg", avg + "");
     }
 }

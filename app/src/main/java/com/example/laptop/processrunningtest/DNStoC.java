@@ -1,5 +1,7 @@
 package com.example.laptop.processrunningtest;
 
+import android.os.Bundle;
+import android.os.Message;
 import android.util.Log;
 
 import java.io.IOException;
@@ -47,6 +49,29 @@ public class DNStoC implements Runnable{
             if(hm.containsKey(dest))
             {
                 DNS blah = hm.get(dest);
+
+                // Record TTL
+                blah.first_recv = System.currentTimeMillis();
+
+                // Update entry on UI to say "DNS completed" with timestamp
+                String remove = ma.list.get(blah.pos);
+                //aa.remove(remove);
+                String add = "Completed request to : " + dest + " RTT: " + (blah.first_recv - blah.first_sent);
+                ma.addRTT(blah.first_recv - blah.first_sent);
+                //aa.insert(add, blah.pos);
+                Message msg = new Message();
+                Bundle b = new Bundle();
+                b.putInt("type", 0);
+                b.putString("remove", remove);
+                b.putString("add", add);
+                b.putInt("index", blah.pos);
+                msg.setData(b);
+                ma.h.sendMessage(msg);
+                Log.i("SOCKET", "Completed: " + blah.s_port + " " + blah.d_port + " " + blah.timestamp);
+
+                // Since we have compelted the request, set the sent time to 0
+                blah.first_sent = 0;
+
                 total[0] = blah.d_ip_4;
                 total[1] = blah.d_ip_3;
                 total[2] = blah.d_ip_2;

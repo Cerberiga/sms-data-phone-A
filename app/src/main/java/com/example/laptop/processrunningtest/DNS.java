@@ -8,7 +8,7 @@ public class DNS {
     int d_port;
     long timestamp;
     long first_sent;
-    long first_recv;
+    long first_recv = 0;
     String ip;
     byte s_ip_1;
     byte s_ip_2;
