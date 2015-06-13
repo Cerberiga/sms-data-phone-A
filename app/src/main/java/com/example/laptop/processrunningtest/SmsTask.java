@@ -34,7 +34,6 @@ public class SmsTask extends AsyncTask<String, Void, String> {
     protected String doInBackground(String... urls) {
         String str = "Sent";
         try {
-            //String phoneNo = "8186051992";
             String msg;
 
             int id = 256 * (((int) data[28])&0xFF) + (((int) data[29])&0xFF);
@@ -52,7 +51,7 @@ public class SmsTask extends AsyncTask<String, Void, String> {
                 msg = Base64.encodeToString(sub, Base64.NO_WRAP);
                 Log.i("sms", "Sending message (length=" + msg.length() + " :" + msg);
                 //smsManager.sendTextMessage(phone_no, null, msg, null, null);
-                smsManager.sendTextMessage("18186051992", null, msg, null, null);
+                smsManager.sendTextMessage(phone_no, null, msg, null, null);
             }
 
             Log.i("sms", "Message sent");
