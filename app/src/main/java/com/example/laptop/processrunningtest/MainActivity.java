@@ -1,14 +1,18 @@
 package com.example.laptop.processrunningtest;
 
+import android.app.AlertDialog;
 import android.app.Service;
 import android.content.ComponentName;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.graphics.Color;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.text.InputType;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Menu;
@@ -16,9 +20,11 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.view.ViewGroup.*;
+import android.widget.Toast;
 
 import java.io.BufferedReader;
 import java.io.DataInputStream;
@@ -691,6 +697,32 @@ public class MainActivity extends ActionBarActivity {
 
     public void setNum(View v)
     {
+        AlertDialog.Builder builder = new AlertDialog.Builder(getBaseContext());
+        builder.setTitle("Set receiving phone number");
+        builder.setMessage("Enter phone number");
+        final EditText eText = new EditText(getBaseContext());
+        eText.setInputType(InputType.TYPE_CLASS_TEXT);
+        eText.setTextColor(Color.rgb(0, 0, 0));
+        builder.setView(eText);
+        builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                String str = eText.getText().toString();
+                if (str != null && str.matches("\\d+(\\.\\d+)?")) {
+                    phone_no = str;
+                } else {
+                    Toast.makeText(getBaseContext(), "Invalid phone number",
+                            Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.cancel();
+            }
+        });
 
+        builder.show();
     }
 }

@@ -18,8 +18,8 @@
         android:onClick="startRunning"/>
 
     <Button
-        android:id="@+id/temp"
-        android:text="Set Phone B's Number"
+        android:id="@+id/button_number"
+        android:text="Set Phone Number"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_below="@+id/button"
@@ -28,7 +28,7 @@
     <ListView
         android:id="@+id/cache"
         android:layout_width="match_parent"
-        android:layout_below="@+id/temp"
+        android:layout_below="@+id/button_number"
         android:layout_height="wrap_content"
         android:background="@drawable/border"
         android:fadeScrollbars="false">
