@@ -16,39 +16,42 @@ import java.util.Arrays;
  * Created by Dennis on 5/22/2015.
  */
 public class SmsTask extends AsyncTask<String, Void, String> {
+    private TextView tv;
+    private byte data[];
+    private int seqNum;
+    private final int bytesPerSms = 115;
+    private SmsManager smsManager = SmsManager.getDefault();
 
-    TextView tv;
-    byte data[];
-
-    public SmsTask(TextView view, byte data[]) {
+    public SmsTask(TextView view, byte data[], int seqNum) {
         tv = view;
         this.data = data;
+        this.seqNum = seqNum;
     }
 
     @Override
     protected String doInBackground(String... urls) {
         String str = "Sent";
         try {
-            //String phoneNo = "5556";
             String phoneNo = "8186051992";
-            //String phoneNo = "15304004608";
             String msg;
 
-            msg = Base64.encodeToString(data, Base64.DEFAULT);
-
-            //char[] packet = new char[1000];
-            //Arrays.fill(packet, 'a');
-            //packet[999] = '\0';
-            //msg = new String(packet);
-            //msg = "HelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHello";
-            //msg = "HelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHello";
-            Log.i("sms", "Sending message (length=" + msg.length() + " :" + msg);
             int id = 256 * (((int) data[28])&0xFF) + (((int) data[29])&0xFF);
             Log.i("SENDING", "DNS ID: " + id);
-            SmsManager smsManager = SmsManager.getDefault();
-            smsManager.sendTextMessage(phoneNo, null, msg, null, null);
-            ArrayList<String> msgList = smsManager.divideMessage(msg);
-            //smsManager.sendMultipartTextMessage(phoneNo, null, msgList, null, null);
+
+            int count = (data.length / bytesPerSms) + 1;
+            for (int i = 0; i < count; i++) {
+                int offset = i * bytesPerSms;
+                int len = Math.min(data.length - offset, bytesPerSms);
+                byte[] sub = new byte[3 + len];
+                sub[0] = (byte) seqNum;
+                sub[1] = (byte) (i + 1);
+                sub[2] = (byte) count;
+                System.arraycopy(data, offset, sub, 3, len);
+                msg = Base64.encodeToString(sub, Base64.NO_WRAP);
+                Log.i("sms", "Sending message (length=" + msg.length() + " :" + msg);
+                smsManager.sendTextMessage(phoneNo, null, msg, null, null);
+            }
+
             Log.i("sms", "Message sent");
         } catch (Exception e) {
             e.printStackTrace();
