@@ -39,7 +39,16 @@ public class SmsReceiver extends BroadcastReceiver{
             String body = sb.toString();
             Log.i("RECV", body);
 
-            byte[] raw = Base64.decode(body, Base64.NO_WRAP);
+            byte[] raw;
+
+            try {
+                raw = Base64.decode(body, Base64.NO_WRAP);
+            }
+            catch(IllegalArgumentException iae)
+            {
+                Log.i("EXCEPTION", "Illegal Argument Exception\n");
+                return;
+            }
 
             sb = new StringBuilder("");
             for (int k = 0; k < raw.length; k++) {
