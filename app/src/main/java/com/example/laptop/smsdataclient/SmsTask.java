@@ -1,16 +1,10 @@
-package com.example.laptop.processrunningtest;
+package com.example.laptop.smsdataclient;
 
 import android.os.AsyncTask;
 import android.telephony.SmsManager;
 import android.util.Base64;
 import android.util.Log;
 import android.widget.TextView;
-
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.util.ArrayList;
-import java.util.Arrays;
 
 /**
  * Created by Dennis on 5/22/2015.

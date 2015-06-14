@@ -1,4 +1,4 @@
-package com.example.laptop.processrunningtest;
+package com.example.laptop.smsdataclient;
 
 import android.os.Bundle;
 import android.os.Message;

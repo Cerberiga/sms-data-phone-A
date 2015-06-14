@@ -1,4 +1,4 @@
-package com.example.laptop.processrunningtest;
+package com.example.laptop.smsdataclient;
 
 /**
  * Created by laptop on 5/28/2015.
