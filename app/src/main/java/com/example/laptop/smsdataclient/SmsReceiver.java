@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.telephony.PhoneNumberUtils;
 import android.telephony.SmsMessage;
 import android.util.Log;
 import android.util.Base64;
@@ -15,6 +16,11 @@ import java.util.Comparator;
 
 /**
  * Created by laptop on 4/15/2015.
+ */
+
+/* BroadcastReceiver to receive SMS messages from Phone B. These messages are interpreted as being
+packets that are destined for other applications on this phone. Create an instance of DnsToC in
+order to forward the packet to the original requester.
  */
 public class SmsReceiver extends BroadcastReceiver{
     MainActivity main_act;
@@ -32,8 +38,17 @@ public class SmsReceiver extends BroadcastReceiver{
                 return;
 
             StringBuilder sb = new StringBuilder("");
+            String phone_b_no;
             for (int j = 0; j < pdus.length; j++) {
                 SmsMessage sms = SmsMessage.createFromPdu((byte[]) pdus[j]);
+                phone_b_no = sms.getOriginatingAddress();
+                //String new_phone = "+1" + main_act.phone_no;
+                boolean is_equal = PhoneNumberUtils.compare(phone_b_no, main_act.phone_no);//new_phone.equals(phone_b_no);
+                Log.i("NUMBER", is_equal +"");
+                if(!is_equal)
+                {
+                    return;
+                }
                 sb.append(sms.getMessageBody());
             }
             String body = sb.toString();

@@ -50,7 +50,6 @@ public class MainActivity extends ActionBarActivity {
     Process c_code;
     TextView main_tv;
     String interfaceName = "rmnet_sdio0";
-    //HashMap<String, DNS> dns_cache = new HashMap<String, DNS>();
     HashMap<Integer, DNS> dns_cache = new HashMap<Integer, DNS>();
     ArrayList<String> ifaces = new ArrayList<String>();
     ArrayList<String> tables = new ArrayList<String>();
@@ -67,7 +66,9 @@ public class MainActivity extends ActionBarActivity {
     Handler h;
     String phone_no;
     Context c = this;
-
+    /* When a new outgoing packet is received by the destination, it is received by a different
+    thread from the UI thread. Use this handler to update the UI when a packet is received.
+     */
     static class MyHandler extends Handler{
         public void handleMessage(Message input)
         {
@@ -100,10 +101,6 @@ public class MainActivity extends ActionBarActivity {
         Intent intent = new Intent(this, SmsService.class);
         bindService(intent, mConnection, Service.BIND_AUTO_CREATE);
 
-        /*Display display = getWindowManager().getDefaultDisplay();
-        Point size = new Point();
-        display.getSize(size);
-*/
         DisplayMetrics dm = new DisplayMetrics();
         getWindowManager().getDefaultDisplay().getMetrics(dm);
         int height = dm.heightPixels;
@@ -115,11 +112,6 @@ public class MainActivity extends ActionBarActivity {
 
         h = new MyHandler();
 
-
-//Log.i("SETHEIGHT", ""+height);
-        //Log.i("SETHEIGHT", ""+b.getHeight);
-
-        //ListView lv = (ListView) findViewById(R.id.cache);
         list = new ArrayList<String>();
         list.add("Outgoing DNS requests being serviced");
 
@@ -161,6 +153,9 @@ public class MainActivity extends ActionBarActivity {
         t.start();
     }
 
+    /* Creates and binds the SmsService to allow constant reception of Sms Messages in the
+    background.
+     */
     private ServiceConnection mConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName className, IBinder service)
@@ -248,30 +243,21 @@ public class MainActivity extends ActionBarActivity {
         }
     }
 
+
     /*
     If the button is clicked when the sub-process is running, this calls stopRunning. Otherwise,
     it starts a process with root permissions and simply executes the C code.
      */
-
     public void startRunning(View v) {
 
 
         if (run) {
-            /*if(rchanged)
-            {
-                restoreRoutes();
-            }*/
             stopRunning(v);
             main_tv.setText("Inferior process not running");
             Button b = (Button) findViewById(R.id.button);
             b.setText("Start Process");
         } else {
             clear_vals();
-            /*if(!rchanged)
-            {
-                removeRoutes(v);
-            }*/
-            //Process temp;
             try {
                 c_code = Runtime.getRuntime().exec("su");
                 //TODO: Add shell code to remove default IP table routes, and add "default dev lo" route
@@ -304,9 +290,10 @@ public class MainActivity extends ActionBarActivity {
             thread_run = false;
             ds.close();
         }
-        if(rchanged)
-        {
-            restoreRoutes();
+        synchronized(c) {
+            if (rchanged) {
+                restoreRoutes();
+            }
         }
         stopRunning(null);
         super.onDestroy();
@@ -314,6 +301,8 @@ public class MainActivity extends ActionBarActivity {
 
     /*
     Handles the information received from the C code. The rest of the work will be done here.
+    Parse the packet and if it is a DNS packet that should be forwarded to the internet, forward it
+    to Phone B by creating an SmsTask object.
      */
     public void handlePacket(int seqNum, DatagramPacket p)
     {
@@ -358,29 +347,35 @@ public class MainActivity extends ActionBarActivity {
 
                     new SmsTask(main_tv, data, seqNum++, phone_no).execute();
                 }
-                //new SmsTask(main_tv, data).execute();
             }
         }
     }
 
+    /*Parse the byte array of the packet and determine the name of the DNS request*/
     String parseString(byte[] b, byte first)
     {
-        Log.i("ASDFS", new String(b));
-        int len = b.length;
-        int i = 0;
-        int advance_amt = (int) first;
-        i += advance_amt;
-        while(i < len)
-        {
-            if(b[i] ==  0)
-                break;
-            advance_amt = (int) b[i];
-            b[i] = '.';
-            i += advance_amt + 1;
+        try {
+            Log.i("ASDFS", new String(b));
+            int len = b.length;
+            int i = 0;
+            int advance_amt = (int) first;
+            i += advance_amt;
+            while (i < len) {
+                if (b[i] == 0)
+                    break;
+                advance_amt = (int) b[i];
+                b[i] = '.';
+                i += advance_amt + 1;
+            }
+            byte[] temp = new byte[i];
+            System.arraycopy(b, 0, temp, 0, i);
+            return new String(temp);
         }
-        byte []temp = new byte[i];
-        System.arraycopy(b, 0, temp, 0, i);
-        return new String(temp);
+        catch(ArrayIndexOutOfBoundsException e)
+        {
+            Log.i("SOCKET", "Invalid packet");
+            return "";
+        }
     }
 
     void copyArr(DNS s, byte[] arr)
@@ -412,142 +407,118 @@ public class MainActivity extends ActionBarActivity {
 
     }
 
-/*public void removeRoutes(View v)
-{
-
-    //list.add("NEW ITEM: " + list.size());
-    //aa.add("NEW ITEM: " + list.size());
-
-    Runnable r = new Runnable()
-    {
-        public void run()
-        {
-            Message msg = new Message();
-            Bundle b = new Bundle();
-            b.putString("string", "HELLO");
-            msg.setData(b);
-            h.sendMessage(msg);
-        }
-    };
-    Thread t = new Thread(r);
-    t.start();
-}
-
-    public void elimItem(View v) {
-        String ob = list.get(4);
-        aa.remove(ob);
-    }
-*/
-
+    /* This function mangles or restores the routing table. If the outgoing routes exist, replace
+    them with routes to localhost.
+     */
     public void toggleRoutes(View v) {
-        if(rchanged)
-        {
-            restoreRoutes();
-            Button b = (Button) findViewById(R.id.button_routes);
-            b.setText("Remove Routes");
-        }
-        else
-        {
-            removeRoutes(v);
-            Button b = (Button) findViewById(R.id.button_routes);
-            b.setText("Restore Routes");
+        synchronized(c) {
+            if (rchanged) {
+                restoreRoutes();
+                Button b = (Button) findViewById(R.id.button_routes);
+                b.setText("Remove Routes");
+            } else {
+                removeRoutes(v);
+                Button b = (Button) findViewById(R.id.button_routes);
+                b.setText("Restore Routes");
+            }
         }
     }
 
+    /* Remove default routes. Scan the routing table and identify all default routes and record
+    them. If the default route goes out of a valid interface (ex. rmnet_sdio0, wlan0, etc), then
+    remove it from the table.
+     */
     public void removeRoutes(View v)
     {
         Runnable r = new Runnable()
         {
             public void run()
             {
-                Process iface = null;
-                try {
-                    iface = Runtime.getRuntime().exec("su");
-                    DataOutputStream os = new DataOutputStream(iface.getOutputStream());
-                    DataInputStream in = new DataInputStream(iface.getInputStream());
-                    os.writeBytes("ip route show table 0\n");
-                    os.writeBytes("exit\n");
-                    BufferedReader br = new BufferedReader(new InputStreamReader(in));
-                    String line;
-                    int counter = 0;
-                    String field;
-                    String value = null;
-                    Log.i("ROUTES", "START LOOP");
-                    ifaces = new ArrayList<String>();
-                    tables = new ArrayList<String>();
-
-                    while ((line = br.readLine()) != null) {
-                        String[] words = line.split(" ");
-                        //Log.i("ROUTES", line);
-                        int size = words.length;
-                        boolean dev_added = false;
-                        boolean table_added = false;
-                        for(int i = 0; i < size; i++)
-                        {
-                            if(i == 0)
-                            {
-                                if(!words[i].equals("default"))
-                                {
-                                    break;
+                synchronized(c) {
+                    Process iface = null;
+                    try {
+                        iface = Runtime.getRuntime().exec("su");
+                        DataOutputStream os = new DataOutputStream(iface.getOutputStream());
+                        DataInputStream in = new DataInputStream(iface.getInputStream());
+                        os.writeBytes("ip route show table 0\n");
+                        os.writeBytes("exit\n");
+                        BufferedReader br = new BufferedReader(new InputStreamReader(in));
+                        String line;
+                        int counter = 0;
+                        String field;
+                        String value = null;
+                        Log.i("ROUTES", "START LOOP");
+                        ifaces = new ArrayList<String>();
+                        tables = new ArrayList<String>();
+                        route_add = new ArrayList<String>();
+                        route_del = new ArrayList<String>();
+                        while ((line = br.readLine()) != null) {
+                            String[] words = line.split(" ");
+                            //Log.i("ROUTES", line);
+                            int size = words.length;
+                            boolean dev_added = false;
+                            boolean table_added = false;
+                            for (int i = 0; i < size; i++) {
+                                if (i == 0) {
+                                    if (!words[i].equals("default")) {
+                                        break;
+                                    }
                                 }
+                                if (words[i].equals("table") && i < size - 1) {
+                                    tables.add(words[i + 1]);
+                                    table_added = true;
+                                } else if (words[i].equals("dev") && i < size - 1) {
+                                    dev_added = true;
+                                    ifaces.add(words[i + 1]);
+                                }
+
                             }
-                            if(words[i].equals("table") && i < size - 1)
-                            {
-                                tables.add(words[i+1]);
-                                table_added = true;
+                            if (dev_added && !table_added) {
+                                tables.add(null);
                             }
-                            else if(words[i].equals("dev") && i < size - 1)
-                            {
-                                dev_added = true;
-                                ifaces.add(words[i+1]);
+                        }
+
+                        for (int j = 0; j < tables.size(); j++) {
+                            if (ifaces.get(j).equals("lo")) {
+                                continue;
                             }
+                            interfaceName = ifaces.get(j);
+                            Process route_proc = Runtime.getRuntime().exec("su");
+                            DataOutputStream os2 = new DataOutputStream(route_proc.getOutputStream());
+                            DataInputStream in2 = new DataInputStream(route_proc.getInputStream());
+                            String del = "ip route del default dev " + ifaces.get(j);
+                            String add = "ip route add default dev lo";
+                            if (tables.get(j) != null) {
+                                del += " table " + tables.get(j);
+                                add += " table " + tables.get(j);
+                            }
+                            del += "\n";
+                            add += "\n";
+                            Log.i("ROUTES", "RUIN ROUTE (DEL): " + del);
+                            Log.i("ROUTES", "RUIN ROUTE (ADD): " + add);
 
+                            route_del.add(del);
+                            route_add.add(add);
+                            os2.writeBytes(del);
+                            os2.writeBytes(add);
+                            os2.writeBytes("exit\n");
+                            route_proc.waitFor();
+                            rchanged = true;
+                            //BufferedReader br2 = new BufferedReader(new InputStreamReader(in));
+
+                            //while ((line = br.readLine()) != null) {
                         }
-                        if(dev_added && !table_added)
-                        {
-                            tables.add(null);
-                        }
-                    }
-
-                    for(int j = 0; j < tables.size(); j++)
-                    {
-                        if(ifaces.get(j).equals("lo"))
-                        {
-                            continue;
-                        }
-                        interfaceName = ifaces.get(j);
-                        Process route_proc = Runtime.getRuntime().exec("su");
-                        DataOutputStream os2 = new DataOutputStream(route_proc.getOutputStream());
-                        DataInputStream in2 = new DataInputStream(route_proc.getInputStream());
-                        String del = "ip route del default dev " + ifaces.get(j);
-                        String add = "ip route add default dev lo";
-                        if(tables.get(j) != null)
-                        {
-                            del += " table " + tables.get(j);
-                            add += " table " + tables.get(j);
-                        }
-                        del += "\n";
-                        add += "\n";
-                        Log.i("RUIN ROUTE (DEL)", del);
-                        Log.i("RUIN ROUTE (ADD)", add);
-
-                        route_del.add(del);
-                        route_add.add(add);
-                        os2.writeBytes(del);
-                        os2.writeBytes(add);
-                        os2.writeBytes("exit\n");
-                        rchanged = true;
-                        //BufferedReader br2 = new BufferedReader(new InputStreamReader(in));
-
-                        //while ((line = br.readLine()) != null) {
-                    }
-
-                    Log.i("ROUTES", "END LOOP");
-                } catch (IOException e) {
+                        Log.i("ROUTES", tables.toString());
+                        Log.i("ROUTES", ifaces.toString());
+                        Log.i("ROUTES", route_add.toString());
+                        Log.i("ROUTES", route_del.toString());
+                        Log.i("ROUTES", "END LOOP");
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    } catch (InterruptedException e) {
                     e.printStackTrace();
-                } /*catch (InterruptedException e) {
-                    e.printStackTrace();
-                }*/
+                }
+                }
             }
         };
         Thread t = new Thread(r);
@@ -556,53 +527,61 @@ public class MainActivity extends ActionBarActivity {
         }
     }
 
-    void restoreRoutes()
+    /* Scan through all previously deleted and added routes. Remove all default routes that go
+    to local loopback and replace them with the routes that were previously deleted.
+     */
+    synchronized void restoreRoutes()
     {
         Runnable r = new Runnable() {
             public void run() {
-                int add_size = route_add.size();
-                int del_size = route_del.size();
-                Process route_proc;
-                try
+                synchronized(c)
                 {
-                    for (int i = 0; i < add_size; i++) {
-                        String[] arr = route_add.get(i).split(" ");
-                        arr[2] = "del";
-                        StringBuilder builder = new StringBuilder();
-                        for (String s : arr) {
-                            builder.append(s);
-                            builder.append(" ");
+                    int add_size = route_add.size();
+                    int del_size = route_del.size();
+                    Process route_proc;
+                    try {
+                        for (int i = 0; i < add_size; i++) {
+                            String[] arr = route_add.get(i).split(" ");
+                            arr[2] = "del";
+                            StringBuilder builder = new StringBuilder();
+                            for (String s : arr) {
+                                builder.append(s);
+                                builder.append(" ");
+                            }
+                            builder.append("\n");
+                            route_proc = Runtime.getRuntime().exec("su");
+                            DataOutputStream os2 = new DataOutputStream(route_proc.getOutputStream());
+                            DataInputStream in2 = new DataInputStream(route_proc.getInputStream());
+                            Log.i("ROUTES", "RESTORE ROUTE (DEL): " + builder.toString());
+                            os2.writeBytes(builder.toString());
+                            os2.writeBytes("exit\n");
+                            route_proc.waitFor();
                         }
-                        route_proc = Runtime.getRuntime().exec("su");
-                        DataOutputStream os2 = new DataOutputStream(route_proc.getOutputStream());
-                        DataInputStream in2 = new DataInputStream(route_proc.getInputStream());
-                        Log.i("RESTORE ROUTE (DEL)", builder.toString());
-                        os2.writeBytes(builder.toString());
-                        os2.writeBytes("exit\n");
-                    }
-                    for (int j = 0; j < del_size; j++) {
-                        String[] arr = route_del.get(j).split(" ");
-                        arr[2] = "add";
-                        StringBuilder builder = new StringBuilder();
-                        for (String s : arr) {
-                            builder.append(s);
-                            builder.append(" ");
+                        for (int j = 0; j < del_size; j++) {
+                            String[] arr = route_del.get(j).split(" ");
+                            arr[2] = "add";
+                            StringBuilder builder = new StringBuilder();
+                            for (String s : arr) {
+                                builder.append(s);
+                                builder.append(" ");
+                            }
+                            builder.append("\n");
+                            route_proc = Runtime.getRuntime().exec("su");
+                            DataOutputStream os2 = new DataOutputStream(route_proc.getOutputStream());
+                            DataInputStream in2 = new DataInputStream(route_proc.getInputStream());
+                            Log.i("ROUTES", "RESTORE ROUTE (ADD): " + builder.toString());
+                            os2.writeBytes(builder.toString());
+                            os2.writeBytes("exit\n");
+                            route_proc.waitFor();
+                            rchanged = false;
                         }
-                        route_proc = Runtime.getRuntime().exec("su");
-                        DataOutputStream os2 = new DataOutputStream(route_proc.getOutputStream());
-                        DataInputStream in2 = new DataInputStream(route_proc.getInputStream());
-                        Log.i("RESTORE ROUTE (ADD)", builder.toString());
-                        os2.writeBytes(builder.toString());
-                        os2.writeBytes("exit\n");
-                        rchanged = false;
-                    }
-                } catch (IOException ioe)
-                {
-                    ioe.printStackTrace();
-                } /*catch (InterruptedException e)
+                    } catch (IOException ioe) {
+                        ioe.printStackTrace();
+                    } catch (InterruptedException e)
                 {
                     e.printStackTrace();
-                }*/
+                }
+                }
             }
         };
         Thread t = new Thread(r);
@@ -613,7 +592,12 @@ public class MainActivity extends ActionBarActivity {
     }
 
 
-
+    /* When this phone receives a DNS request, check the local cache to see if this DNS request has
+    been seen before and if it is being serviced. If a particular DNS ID is currently outstanding,
+    ignore any duplicate DNS requests. However, each subsequent request may be out of different
+    ports. Thus, update the cache with the port number of the most recent request. If a DNS request
+    has not been seen before, forward the packet.
+      */
     synchronized boolean checkCache(String s, int s_port, int d_port, String ip, byte[] arr, int id)
     {
         long secs = (new Date()).getTime();
@@ -624,16 +608,6 @@ public class MainActivity extends ActionBarActivity {
         {
             //DNS blah = dns_cache.get(s);
             DNS blah = dns_cache.get(id);
-            /*
-            if(secs - blah.timestamp > 60*1000)
-            {
-                blah.timestamp = secs;
-                blah.s_port = s_port;
-                _ret = true;
-
-                Log.i("SOCKET", "UPDATING: " + blah.s_port + " " + blah.d_port + " " + blah.timestamp);
-            }*/
-
             // If we have already completed the request, reset the timestamp to right now
             if(blah.first_sent == 0) {
                 _ret = true;
@@ -687,18 +661,19 @@ public class MainActivity extends ActionBarActivity {
         return _ret;
     }
 
+    /* When restarting the process, clear all of the stored values */
     public void clear_vals()
     {
         dns_cache = new HashMap<Integer, DNS>();
-        //ifaces = new ArrayList<String>();
-        //tables = new ArrayList<String>();
-        //route_del = new ArrayList<String>();
-        //route_add = new ArrayList<String>();
         roundTripTimes = new ArrayList<Long>();
         rttname = new ArrayList<String>();
         aa.clear();
     }
 
+
+   /*
+   When a packet is successfully received, add it's round trip time to the array.
+    */
     public synchronized void addRTT(long rtt, String s) {
         long avg = 0;
         roundTripTimes.add(rtt);
@@ -712,6 +687,7 @@ public class MainActivity extends ActionBarActivity {
         Log.i("RTT avg", avg + "");
     }
 
+    /* Set the phone number of phone B*/
     public void setNum(View v)
     {
         AlertDialog.Builder builder = new AlertDialog.Builder(c);

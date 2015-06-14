@@ -15,12 +15,11 @@ import java.util.HashMap;
 /**
  * Created by laptop on 5/28/2015.
  */
-public class DNStoC implements Runnable{
-    //private static DNStoC ourInstance = new DNStoC();
 
-    /*public static DNStoC getInstance() {
-        return ourInstance;
-    }*/
+/* This class is used to send DNS response back to the application that initially made a DNS
+request.
+ */
+public class DNStoC implements Runnable{
 
     int s_port;
     int d_port;
@@ -31,13 +30,15 @@ public class DNStoC implements Runnable{
 
     public DNStoC(MainActivity ma, byte[] raw, DatagramSocket ds, int id) {
         this.ma = ma;
-        /*this.s_port = s_port;
-        this.d_port = d_port;*/
         this.ds = ds;
         this.raw = raw;
         this.id = id;
     }
 
+    /* Parse the byte received from Phone B and format them to be sent to the C code. Include the
+    original requesting IP and port numbers so that when sending out a formatted packet from the
+    C code, the ip addresses and ports can be replaced so that they match the original requester.
+     */
     @Override
     public void run() {
         try {
@@ -48,13 +49,14 @@ public class DNStoC implements Runnable{
             byte[] total = new byte[raw.length + 12];
 
             HashMap<Integer, DNS> hm = ma.dns_cache;
-            //HashMap<String, DNS> hm = ma.dns_cache;
-            //if(hm.containsKey(dest))
             if(hm.containsKey(id))
             {
                 //DNS blah = hm.get(dest);
                 DNS blah = hm.get(id);
-
+                if(blah.first_sent == 0)
+                {
+                    return;
+                }
                 // Record TTL
                 blah.first_recv = System.currentTimeMillis();
 
@@ -62,6 +64,7 @@ public class DNStoC implements Runnable{
                 String remove = ma.list.get(blah.pos);
                 //aa.remove(remove);
                 String add = "Completed request to : " + dest + " RTT: " + (blah.first_recv - blah.first_sent);
+
                 ma.addRTT(blah.first_recv - blah.first_sent, dest);
                 //aa.insert(add, blah.pos);
                 Message msg = new Message();

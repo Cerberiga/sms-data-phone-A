@@ -3,6 +3,10 @@ package com.example.laptop.smsdataclient;
 /**
  * Created by laptop on 5/28/2015.
  */
+
+/* This class stores entries on outgoing DNS requests such as information like port number, name of
+the URL, and timing information.
+ */
 public class DNS {
     int s_port;
     int d_port;
