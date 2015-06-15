@@ -516,8 +516,8 @@ public class MainActivity extends ActionBarActivity {
                     } catch (IOException e) {
                         e.printStackTrace();
                     } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+                        e.printStackTrace();
+                    }
                 }
             }
         };
@@ -578,9 +578,9 @@ public class MainActivity extends ActionBarActivity {
                     } catch (IOException ioe) {
                         ioe.printStackTrace();
                     } catch (InterruptedException e)
-                {
-                    e.printStackTrace();
-                }
+                    {
+                        e.printStackTrace();
+                    }
                 }
             }
         };
@@ -671,9 +671,9 @@ public class MainActivity extends ActionBarActivity {
     }
 
 
-   /*
-   When a packet is successfully received, add it's round trip time to the array.
-    */
+    /*
+    When a packet is successfully received, add it's round trip time to the array.
+     */
     public synchronized void addRTT(long rtt, String s) {
         long avg = 0;
         roundTripTimes.add(rtt);

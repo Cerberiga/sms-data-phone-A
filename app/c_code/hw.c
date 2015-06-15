@@ -15,7 +15,8 @@
 #include <sys/types.h>
 #include <signal.h>
 #include <pthread.h>
-	
+#include <errno.h>	
+
 /* Begins by creating a datagram socket on 127.0.0.1 which will be used to forward data to
 the Android application. Currently, it will print out five timestamps, each one second 
 apart to stdout as well as in a packet out of the socket. Afterwards, it creates the raw
@@ -51,8 +52,28 @@ void handle_int()
   exit(1);
 }
 
+int is_le;
+
 int main(int argc, char* argv[])
 {
+  int tester = 1;
+  if(*((char*)&tester) == 1)
+  {
+    is_le = 1;
+  }
+  else
+  {
+    is_le = 0;
+  }
+
+  if(is_le)
+  {
+    printf("IS LITTLE ENDIAN\n");
+  }
+  else
+  {
+    printf("IS BIG ENDIAN\n");
+  }
   signal(SIGINT, handle_int); 
   if(argc != 2) {
   	printf("Usage: ./hw <interface_name>\n");
@@ -127,6 +148,8 @@ printf("Address: %s\n", my_addr);
         return 1;
     }
     
+
+
   pthread_t tcp_thread, udp_thread, android_thread;
   pthread_create(&tcp_thread, NULL, &capture_tcp_traffic, NULL);
   pthread_create(&udp_thread, NULL, &capture_udp_traffic, NULL);
@@ -137,6 +160,24 @@ printf("Address: %s\n", my_addr);
   pthread_join( android_thread, NULL);
   pthread_mutex_destroy(&lock);
   close(sockfd);
+}
+
+char * toString(char * s)
+{
+  int len = strlen(s);
+  char* ret = (char *) malloc(len);
+  memcpy(ret, s+1, len-1);
+  int i = 0;
+  while(s[i] != 0)
+  {
+    int offset = (unsigned char) s[i];
+    if(i != 0)
+    {
+      ret[i-1] = '.';
+    }
+    i += offset + 1;
+  } 
+  return ret;
 }
 
 
@@ -225,7 +266,26 @@ void *capture_udp_traffic(void *v) {
       printf("DNS NAME: %s\n", dns_q_name);
       printDataAsHex(message, data_size);
 
-      char name[] = "cs.ucla.edu";
+      //char name[] = "cs.ucla.edu";
+      char selfhelp[] = "selfhelp.geo.t-mobile.com";
+      /*char selfhelp[27];
+      selfhelp[0] = 0x8;
+      memcpy(selfhelp + 1, blacklist + 1, 8);
+      selfhelp[9] = 0x3;
+      memcpy(selfhelp + 10, blacklist + 10, 3);
+      selfhelp[13] = 0x8;
+      memcpy(selfhelp + 14, blacklist + 14, 8);
+      selfhelp[22] = 0x3;
+      memcpy(selfhelp + 23, blacklist + 32, 3);
+      selfhelp[26] = 0;
+        */    
+      char * val = toString(dns_q_name);
+      printf("\n%s\n", val);
+      /*if(strcmp(val, "cs.ucla.edu") == 0)
+      {
+        printf("SAME\n");
+      }*/
+
       char name_from_packet[12];
       name_from_packet[11] = '\0';
       memcpy(name_from_packet, dns_q_name + 1, 11); 
@@ -234,16 +294,21 @@ void *capture_udp_traffic(void *v) {
       //printf("%d\n", strcmp(name_from_packet, name));
       //printf("%d\n", strcmp(name_from_packet, "name"));
 
-	  size_t name_size = strlen(dns_q_name);
+      size_t name_size = strlen(dns_q_name);
 
-      if(strcmp(name_from_packet, name) == 0 && *(dns_q_name + name_size + 2) != 0x1c) {
+      //if(strcmp(name_from_packet, name) == 0 && *(dns_q_name + name_size + 2) != 0x1c) {
+      if(strcmp(val, selfhelp) != 0) {
       	sendto(sockfd, message, data_size, 0, (struct sockaddr *)&cliaddr, sizeof(cliaddr));
-      }
+       }
+       else
+       {
+         printf("------OMITTING SELFHELP------\n");
+       }
       }
       
 
       // Incoming packet
-      else if((ip_head->daddr == my_ip || ip_head->daddr == lo)  && 
+      /*else if((ip_head->daddr == my_ip || ip_head->daddr == lo)  && 
       			!( ntohs(udp_head->dest) == 51691 && ip_head->daddr == lo && ip_head->saddr == lo))
       {
       
@@ -268,30 +333,30 @@ void *capture_udp_traffic(void *v) {
       uint32_t dns_no_qs = ntohs(*((uint32_t *)(dns_head +4)));
       uint32_t dns_test = (*((uint8_t *)(dns_head+3)));
       char* dns_q_name = (dns_head+12);
-      /*
-      printf("DNS ID: %d\n", dns_id);
-      printf("DNS QR?: %d\n", (dns_QR_OP &1)); 
-      printf("DNS OP?: %d\n", (dns_QR_OP >> 1) & 15); 
-      printf("DNS Qs?: %d\n", (dns_no_qs & 0xFFFF)); 
-      printf("DNS As?: %d\n", ((dns_no_qs>>16) & 0xFFFF)); 
-      printf("DNS 0's: %d\n", (dns_test >> 1) & 1); 
-      */
+      
+      //printf("DNS ID: %d\n", dns_id);
+      //printf("DNS QR?: %d\n", (dns_QR_OP &1)); 
+      //printf("DNS OP?: %d\n", (dns_QR_OP >> 1) & 15); 
+      //printf("DNS Qs?: %d\n", (dns_no_qs & 0xFFFF)); 
+      //printf("DNS As?: %d\n", ((dns_no_qs>>16) & 0xFFFF)); 
+      //printf("DNS 0's: %d\n", (dns_test >> 1) & 1); 
+      
       printf("DNS NAME: %s\n", dns_q_name); 
       printDataAsHex(message, data_size);
-      /*
-      printf("Name length: %d\n", (int) strlen(dns_q_name));
-      int name_length = strlen(dns_q_name) + 1; //round_up_32((int) strlen(dns_q_name));
-      printf("Rounded name length: %d\n", name_length);
-      printf("DNS QUERY TYPE: %d\n", *((short *) (dns_q_name + name_length)));
-      printf("DNS QUERY CLASS: %d\n", *((short *) (dns_q_name + name_length + 2)));
-      char* dns_r_name = dns_q_name + strlen(dns_q_name) + 4;
-      printf("DNS ANSWER NAME, I THINK: %s\n", dns_r_name);
-      */
+      
+      //printf("Name length: %d\n", (int) strlen(dns_q_name));
+      //int name_length = strlen(dns_q_name) + 1; //round_up_32((int) strlen(dns_q_name));
+      //printf("Rounded name length: %d\n", name_length);
+      //printf("DNS QUERY TYPE: %d\n", *((short *) (dns_q_name + name_length)));
+      //printf("DNS QUERY CLASS: %d\n", *((short *) (dns_q_name + name_length + 2)));
+      //char* dns_r_name = dns_q_name + strlen(dns_q_name) + 4;
+      //printf("DNS ANSWER NAME, I THINK: %s\n", dns_r_name);
+      
       if(ntohs(udp_head->dest) == 53)
       {
         sendto(sockfd, message, data_size, 0, (struct sockaddr *)&cliaddr, sizeof(cliaddr));
       }
-      }
+      }*/
     }
   }
 }
@@ -430,7 +495,7 @@ struct pseudo_header
 /*
     Generic checksum calculation function
 */
-unsigned short csum(unsigned short *ptr,int nbytes) 
+unsigned short be_csum(unsigned short *ptr,int nbytes) 
 {
     register long sum;
     unsigned short oddbyte;
@@ -454,7 +519,32 @@ unsigned short csum(unsigned short *ptr,int nbytes)
     return(answer);
 }
  
+unsigned short csum(unsigned char *ptr, int nbytes)
+{
+    unsigned long sum;
+    unsigned char byte1, byte2;
 
+    sum=0;
+    while(nbytes>1) {
+        byte1 = *ptr++;
+        byte2 = *ptr++;
+        sum += ((unsigned short)byte1<<8) + byte2;
+        nbytes -= 2;
+    }
+
+    // If odd number of bytes, last one must be shifted left 8 bits 
+    if(nbytes==1) {
+        byte1 = *ptr++;
+        sum += ((unsigned short)byte1<<8);
+        nbytes--;
+    }
+
+        // Add any overflow back onto sum
+    sum = (sum>>16)+(sum & 0xffff);
+    sum = (sum>>16)+(sum & 0xffff);
+
+    return ~(short)sum;
+}
 
 // Function that listens to traffic on 127.0.0.1, port 34567
 // Call this function on new thread to run asynchronously with the socket..
@@ -571,31 +661,41 @@ void *capture_android_message(void *v) {
     iph->daddr = dest_ip.num;//inet_addr( dest_ip.bytes );			// Dest IP
      
     //Ip checksum
-    iph->check = csum ((unsigned short *) datagram, iph->tot_len);
+    //iph->check = csum ((unsigned short *) datagram, iph->tot_len);
+    iph->check = csum ((unsigned char *) datagram, iph->tot_len);
      
     //UDP header
     udph->source = source_port.num;//htons (source_port.num);
     udph->dest = dest_port.num;//htons (dest_port.num);
-    udph->len = htons(8 + strlen(data)); // UDP header size
+    udph->len = htons(8 + bytes_recvd - 12); // UDP header size
     udph->check = 0; //leave checksum 0 now, filled later by pseudo header
      /****************************************************/
      /***********Not sure how the below code works *****/
      /***************************************************/
      
     //Now the UDP checksum using the pseudo header
-    psh.source_address = inet_addr( source_ip.bytes );
-    psh.dest_address = sin.sin_addr.s_addr;
+    psh.source_address = source_ip.num;//inet_addr( source_ip.bytes );
+    psh.dest_address = dest_ip.num;//sin.sin_addr.s_addr;
     psh.placeholder = 0;
     psh.protocol = IPPROTO_UDP;
-    psh.udp_length = htons(sizeof(struct udphdr) + strlen(data) );
-     
-    int psize = sizeof(struct pseudo_header) + sizeof(struct udphdr) + strlen(data);
+    psh.udp_length = htons(sizeof(struct udphdr) + bytes_recvd - 12);//strlen(data) );
+
+    
+    int psize = sizeof(struct pseudo_header) + sizeof(struct udphdr) + bytes_recvd - 12;//strlen(data);
     pseudogram = malloc(psize);
      
     memcpy(pseudogram , (char*) &psh , sizeof (struct pseudo_header));
-    memcpy(pseudogram + sizeof(struct pseudo_header) , udph , sizeof(struct udphdr) + strlen(data));
+    memcpy(pseudogram + sizeof(struct pseudo_header) , udph , sizeof(struct udphdr) + bytes_recvd - 12);//strlen(data));
+    
+
+    printf(">>>>>>>>>>>>>>>>PSEUDOGRAM<<<<<<<<<<<\n");
+    printDataAsHex((char*) &pseudogram, 12 + 8 + bytes_recvd - 12);
+    printf(">>>>>>>>>>>>>>>>PSEUDOGRAM<<<<<<<<<<<\n");
      
-    udph->check = csum( (unsigned short*) pseudogram , psize);
+ 
+    //udph->check = csum( (unsigned char*) pseudogram , psize);
+    udph->check = htons(csum( (unsigned char*) pseudogram , psize));
+//udph->check = 0;
     printf("-------------SENDING to application----------\n");
     int i = 0;
     
@@ -612,7 +712,33 @@ void *capture_android_message(void *v) {
 		{
 			printf ("Packet Send. Length : %d \n" , iph->tot_len);
 		}
-     
+ 
+    /*int nsockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    struct sockaddr_in appaddr;
+    bzero(&appaddr, sizeof(appaddr));
+    appaddr.sin_family = AF_INET;
+    appaddr.sin_addr.s_addr = iph->daddr;
+    appaddr.sin_port= udph->dest;
+    int a = 1;
+    if(setsockopt(nsockfd, SOL_SOCKET, SO_REUSEADDR, &a, sizeof(a)) < 0)
+    {
+      printf("DOESN'T WORK\n");
+      exit(1);
+    }
+    struct sockaddr_in bindaddr;
+    bzero(&bindaddr, sizeof(bindaddr));
+    bindaddr.sin_family = AF_INET;
+    //bindaddr.sin_addr.s_addr=iph->saddr;
+    bindaddr.sin_addr.s_addr=inet_addr("123.123.123.123");
+    bindaddr.sin_port=htons(53);
+    if(bind(nsockfd, (struct sockaddr*) &bindaddr, sizeof(bindaddr)) < 0)
+    {
+      
+      printf("ALSO DOESN'T WORK\n");
+      printf("ERR: %s\n", strerror(errno));
+      exit(1);
+    }
+    sendto(nsockfd, datagram+28, bytes_recvd - 12, 0, (struct sockaddr *) &appaddr, sizeof(appaddr));*/
     //return 0;
    }
 }
